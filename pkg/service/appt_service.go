@@ -37,8 +37,8 @@ func NewApptService(repo db.ApptRepository) *ApptService {
 // 5. Must not be on a US public holiday (this was not in requirements, but is a common business rule for scheduling).
 func (s *ApptService) validateAppt(appt db.Appointment) error {
 	// Normalize to PST
-	startPT := appt.StartsAt.In(pacificLoc)
-	endPT := appt.EndsAt.In(pacificLoc)
+	startPT := appt.StartedAt.In(pacificLoc)
+	endPT := appt.EndedAt.In(pacificLoc)
 
 	// Must be exactly 30 minutes
 	if endPT.Sub(startPT) != 30*time.Minute {
@@ -124,7 +124,7 @@ func (s *ApptService) GetAvailableSlots(ctx context.Context, trainerID int, rang
 
 					isBooked := false
 					for _, appt := range bookedAppts {
-						if slotStart.Before(appt.EndsAt) && slotEnd.After(appt.StartsAt) {
+						if slotStart.Before(appt.EndedAt) && slotEnd.After(appt.StartedAt) {
 							isBooked = true
 							break
 						}
@@ -133,8 +133,8 @@ func (s *ApptService) GetAvailableSlots(ctx context.Context, trainerID int, rang
 					if !isBooked {
 						availableSlots = append(availableSlots, db.Appointment{
 							TrainerID: trainerID,
-							StartsAt:  slotStart,
-							EndsAt:    slotEnd,
+							StartedAt: slotStart,
+							EndedAt:   slotEnd,
 						})
 					}
 
@@ -157,7 +157,7 @@ func (s *ApptService) BookAppointment(ctx context.Context, appt db.Appointment) 
 	}
 
 	// Check for overlapping appointments
-	overlapping, err := s.repo.GetOverlappingAppointments(ctx, appt.TrainerID, appt.StartsAt, appt.EndsAt)
+	overlapping, err := s.repo.GetOverlappingAppointments(ctx, appt.TrainerID, appt.StartedAt, appt.EndedAt)
 	if err != nil {
 		return db.Appointment{}, fmt.Errorf("failed to check for overlaps: %w", err)
 	}
@@ -206,8 +206,8 @@ func (s *ApptService) UpdateAppointment(ctx context.Context, appt db.Appointment
 
 	// If the time is actually changing, check for overlaps with other appointments
 	// (ignore overlap with itself)
-	if !existing.StartsAt.Equal(appt.StartsAt) || !existing.EndsAt.Equal(appt.EndsAt) {
-		overlapping, err := s.repo.GetOverlappingAppointments(ctx, appt.TrainerID, appt.StartsAt, appt.EndsAt)
+	if !existing.StartedAt.Equal(appt.StartedAt) || !existing.EndedAt.Equal(appt.EndedAt) {
+		overlapping, err := s.repo.GetOverlappingAppointments(ctx, appt.TrainerID, appt.StartedAt, appt.EndedAt)
 		if err != nil {
 			return db.Appointment{}, fmt.Errorf("failed to check overlaps: %w", err)
 		}
@@ -246,12 +246,12 @@ func (s *ApptService) DeleteAppointment(ctx context.Context, id int) error {
 	now := time.Now().In(pacificLoc)
 
 	// Cannot cancel past appointments
-	if appt.StartsAt.Before(now) {
+	if appt.StartedAt.Before(now) {
 		return fmt.Errorf("cannot cancel past appointments")
 	}
 
 	minNotice := 30 * time.Minute // I chose 30 minutes but this can be any length of time
-	if appt.StartsAt.Sub(now) < minNotice {
+	if appt.StartedAt.Sub(now) < minNotice {
 		return fmt.Errorf("appointments must be cancelled at least %v in advance", minNotice)
 	}
 

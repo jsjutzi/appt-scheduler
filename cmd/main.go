@@ -16,6 +16,8 @@ import (
 	"github.com/jsjutzi/appt-scheduler/pkg/service"
 )
 
+var seedFilePath = "./appointments.json"
+
 func main() {
 	// Set up signal handling for graceful shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -36,7 +38,7 @@ func main() {
 	apiHandler := api.NewAPI(apptService)
 
 	// Seed data (safe to call N times)
-	if err := apptRepo.SeedFromJSON(ctx, "appointments.json"); err != nil {
+	if err := apptRepo.SeedFromJSON(ctx, seedFilePath); err != nil {
 		log.Printf("Warning: Failed to seed data: %v", err)
 	} else {
 		log.Println("Successfully seeded appointments from appointments.json")

@@ -14,7 +14,7 @@ type Config struct {
 
 func Load() Config {
 	if os.Getenv("ENV") == "" || os.Getenv("ENV") == "local" {
-		err := godotenv.Load("../../.env")
+		err := godotenv.Load(".env")
 		if err != nil {
 			panic("Error loading .env file")
 		}

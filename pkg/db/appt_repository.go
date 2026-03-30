@@ -13,16 +13,16 @@ import (
 
 type Appointment struct {
 	ID        int       `json:"id" db:"id"`
-	TrainerID int       `json:"trainerId" db:"trainer_id"`
-	UserID    int       `json:"userId" db:"user_id"`
-	StartsAt  time.Time `json:"startsAt" db:"starts_at"`
-	EndsAt    time.Time `json:"endsAt" db:"ends_at"`
+	TrainerID int       `json:"trainer_id" db:"trainer_id"`
+	UserID    int       `json:"user_id" db:"user_id"`
+	StartedAt time.Time `json:"started_at" db:"started_at"`
+	EndedAt   time.Time `json:"ended_at" db:"ended_at"`
 }
 
 type ApptRepository interface {
 	GetAppointmentsByTrainerID(ctx context.Context, trainerID int, startTime, endTime time.Time) ([]Appointment, error)
 	GetAppointmentByID(ctx context.Context, apptID int) (Appointment, error)
-	GetOverlappingAppointments(ctx context.Context, trainerID int, startsAt, endsAt time.Time) ([]Appointment, error)
+	GetOverlappingAppointments(ctx context.Context, trainerID int, startedAt, endedAt time.Time) ([]Appointment, error)
 	CreateAppointment(ctx context.Context, appt Appointment) (Appointment, error)
 	UpdateAppointment(ctx context.Context, appt Appointment) (Appointment, error)
 	DeleteAppointment(ctx context.Context, apptID int) error
@@ -40,7 +40,7 @@ func NewApptRepository(db *pgxpool.Pool) ApptRepository {
 // GetAppointmentsByTrainerID retrieves all appointments for a given trainer, optionally filtered by a date range.
 func (ar *apptRepository) GetAppointmentsByTrainerID(ctx context.Context, trainerID int, startTime, endTime time.Time) ([]Appointment, error) {
 	query := `
-		SELECT id, trainer_id, user_id, starts_at, ends_at
+		SELECT id, trainer_id, user_id, started_at, ended_at
 		FROM appointments
 		WHERE trainer_id = @trainerID
 	`
@@ -80,8 +80,8 @@ func (ar *apptRepository) GetAppointmentsByTrainerID(ctx context.Context, traine
 			&appt.ID,
 			&appt.TrainerID,
 			&appt.UserID,
-			&appt.StartsAt,
-			&appt.EndsAt,
+			&appt.StartedAt,
+			&appt.EndedAt,
 		); err != nil {
 			return nil, fmt.Errorf("Error scanning appt row %w", err)
 		}
@@ -103,14 +103,14 @@ func (ar *apptRepository) GetAppointmentsByTrainerID(ctx context.Context, traine
 func (ar *apptRepository) CreateAppointment(ctx context.Context, appt Appointment) (Appointment, error) {
 	query := `
 		INSERT INTO appointments (trainer_id, user_id, starts_at, ends_at)
-		VALUES (@trainerID, @userID, @startsAt, @endsAt)
+		VALUES (@trainerID, @userID, @startedAt, @endedAt)
 		RETURNING id, trainer_id, user_id, starts_at, ends_at
 	`
 	args := pgx.NamedArgs{
 		"trainerID": appt.TrainerID,
 		"userID":    appt.UserID,
-		"startsAt":  appt.StartsAt,
-		"endsAt":    appt.EndsAt,
+		"startedAt": appt.StartedAt,
+		"endedAt":   appt.EndedAt,
 	}
 
 	var createdAppt Appointment
@@ -119,8 +119,8 @@ func (ar *apptRepository) CreateAppointment(ctx context.Context, appt Appointmen
 		&createdAppt.ID,
 		&createdAppt.TrainerID,
 		&createdAppt.UserID,
-		&createdAppt.StartsAt,
-		&createdAppt.EndsAt,
+		&createdAppt.StartedAt,
+		&createdAppt.EndedAt,
 	)
 	if err != nil {
 		return Appointment{}, fmt.Errorf("Error creating appointment: %w", err)
@@ -130,20 +130,20 @@ func (ar *apptRepository) CreateAppointment(ctx context.Context, appt Appointmen
 }
 
 // GetOverlappingAppointments checks for any appointments that overlap with the given time range for a specific trainer.
-func (ar *apptRepository) GetOverlappingAppointments(ctx context.Context, trainerID int, startsAt, endsAt time.Time) ([]Appointment, error) {
+func (ar *apptRepository) GetOverlappingAppointments(ctx context.Context, trainerID int, startedAt, endedAt time.Time) ([]Appointment, error) {
 	query := `
-		SELECT id, trainer_id, user_id, starts_at, ends_at
+		SELECT id, trainer_id, user_id, started_at, ended_at
 		FROM appointments
 		WHERE trainer_id = @trainerID
-			AND starts_at < @endsAt
-			AND ends_at > @startsAt
-		ORDER BY starts_at ASC
+			AND started_at < @endedAt
+			AND ended_at > @startedAt
+		ORDER BY started_at ASC
 	`
 
 	args := pgx.NamedArgs{
 		"trainerID": trainerID,
-		"startsAt":  startsAt,
-		"endsAt":    endsAt,
+		"startedAt": startedAt,
+		"endedAt":   endedAt,
 	}
 
 	rows, err := ar.db.Query(ctx, query, args)
@@ -160,8 +160,8 @@ func (ar *apptRepository) GetOverlappingAppointments(ctx context.Context, traine
 			&appt.ID,
 			&appt.TrainerID,
 			&appt.UserID,
-			&appt.StartsAt,
-			&appt.EndsAt,
+			&appt.StartedAt,
+			&appt.EndedAt,
 		); err != nil {
 			return nil, fmt.Errorf("Error scanning overlapping appt row %w", err)
 		}
@@ -203,26 +203,26 @@ func (ar *apptRepository) SeedFromJSON(ctx context.Context, filename string) err
 		// Normalize time to Pacific Time zone per requirement.
 		// This ensures the stored time is always represented in the correct location,
 		// even if the JSON had a different offset.
-		appt.StartsAt = appt.StartsAt.In(pacificLoc)
-		appt.EndsAt = appt.EndsAt.In(pacificLoc)
+		appt.StartedAt = appt.StartedAt.In(pacificLoc)
+		appt.EndedAt = appt.EndedAt.In(pacificLoc)
 
 		query := `
 			INSERT INTO appointments (trainer_id, user_id, starts_at, ends_at)
-			VALUES (@trainerID, @userID, @startsAt, @endsAt)
+			VALUES (@trainerID, @userID, @startedAt, @endedAt)
 			ON CONFLICT (trainer_id, starts_at) DO NOTHING
 		`
 
 		args := pgx.NamedArgs{
 			"trainerID": appt.TrainerID,
 			"userID":    appt.UserID,
-			"startsAt":  appt.StartsAt,
-			"endsAt":    appt.EndsAt,
+			"startedAt": appt.StartedAt,
+			"endedAt":   appt.EndedAt,
 		}
 
 		_, err := ar.db.Exec(ctx, query, args)
 		if err != nil {
 			return fmt.Errorf("failed to seed appointment for trainer %d at %s: %w",
-				appt.TrainerID, appt.StartsAt.Format(time.RFC3339), err)
+				appt.TrainerID, appt.StartedAt.Format(time.RFC3339), err)
 		}
 	}
 
@@ -245,8 +245,8 @@ func (ar *apptRepository) GetAppointmentByID(ctx context.Context, id int) (Appoi
 		&appt.ID,
 		&appt.TrainerID,
 		&appt.UserID,
-		&appt.StartsAt,
-		&appt.EndsAt,
+		&appt.StartedAt,
+		&appt.EndedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -263,8 +263,8 @@ func (ar *apptRepository) UpdateAppointment(ctx context.Context, appt Appointmen
 		UPDATE appointments
 		SET trainer_id = @trainerID,
 		    user_id = @userID,
-		    starts_at = @startsAt,
-		    ends_at = @endsAt
+		    starts_at = @startedAt,
+		    ends_at = @endedAt
 		WHERE id = @id
 	`
 
@@ -272,13 +272,13 @@ func (ar *apptRepository) UpdateAppointment(ctx context.Context, appt Appointmen
 		"id":        appt.ID,
 		"trainerID": appt.TrainerID,
 		"userID":    appt.UserID,
-		"startsAt":  appt.StartsAt,
-		"endsAt":    appt.EndsAt,
+		"startedAt": appt.StartedAt,
+		"endedAt":   appt.EndedAt,
 	}
 
 	var updated Appointment
 	err := ar.db.QueryRow(ctx, query, args).Scan(
-		&updated.ID, &updated.TrainerID, &updated.UserID, &updated.StartsAt, &updated.EndsAt,
+		&updated.ID, &updated.TrainerID, &updated.UserID, &updated.StartedAt, &updated.EndedAt,
 	)
 
 	if err != nil {
