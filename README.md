@@ -35,7 +35,7 @@ A RESTful Go API for managing trainer/coach appointments with strict business ru
 ### 2. Clone the Repository
 
 ```bash
-git clone <https://github.com/jsjutzi/appt-scheduler>
+git clone https://github.com/jsjutzi/appt-scheduler
 cd appt-scheduler
 ```
 
