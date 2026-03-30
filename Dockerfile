@@ -3,10 +3,16 @@ FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
+# Install swag tool
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+
+# Generate Swagger docs during build
+RUN swag init -g pkg/api/api.go
 
 # Build the binary with optimizations
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
@@ -27,6 +33,7 @@ COPY --from=builder /app/main .
 # Copy the seed file
 COPY --from=builder /app/appointments.json .
 COPY --from=builder /app/.env .
+COPY --from=builder /app/docs ./docs
 
 # Business logic in the app handles this, but we set it here for consistency
 ENV TZ=America/Los_Angeles

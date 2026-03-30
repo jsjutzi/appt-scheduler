@@ -37,12 +37,13 @@ func NewApptService(repo db.ApptRepository) *ApptService {
 // 5. Must not be on a US public holiday (this was not in requirements, but is a common business rule for scheduling).
 func (s *ApptService) validateAppt(appt db.Appointment) error {
 	// Normalize to PST
-	startPT := appt.StartedAt.In(pacificLoc)
-	endPT := appt.EndedAt.In(pacificLoc)
+	startPT := appt.StartedAt.In(pacificLoc).Truncate(time.Minute)
+	endPT := appt.EndedAt.In(pacificLoc).Truncate(time.Minute)
 
 	// Must be exactly 30 minutes
-	if endPT.Sub(startPT) != 30*time.Minute {
-		return fmt.Errorf("appointment must be exactly 30 minutes long")
+	duration := endPT.Sub(startPT)
+	if duration != 30*time.Minute {
+		return fmt.Errorf("appointment must be exactly 30 minutes long (got %v)", duration)
 	}
 
 	// Must start on :00 or :30

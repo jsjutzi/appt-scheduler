@@ -1,0 +1,210 @@
+basePath: /
+definitions:
+  db.Appointment:
+    properties:
+      ended_at:
+        type: string
+      id:
+        type: integer
+      started_at:
+        type: string
+      trainer_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Go-based API for managing trainer appointments with strict Pacific
+    Time business rules.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Appointment Scheduler API
+  version: "1.0"
+paths:
+  /appointments:
+    get:
+      consumes:
+      - application/json
+      description: Returns all appointments for a specific trainer
+      parameters:
+      - description: Trainer ID
+        in: query
+        name: trainer_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db.Appointment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get scheduled appointments
+      tags:
+      - appointments
+    post:
+      consumes:
+      - application/json
+      description: Creates a new 30-minute appointment after validation
+      parameters:
+      - description: Appointment object
+        in: body
+        name: appointment
+        required: true
+        schema:
+          $ref: '#/definitions/db.Appointment'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/db.Appointment'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Slot already booked or validation failed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Book a new appointment
+      tags:
+      - appointments
+  /appointments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Cancel an existing appointment
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete an appointment
+      tags:
+      - appointments
+    put:
+      consumes:
+      - application/json
+      description: Reschedule an existing appointment
+      parameters:
+      - description: Appointment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated appointment data
+        in: body
+        name: appointment
+        required: true
+        schema:
+          $ref: '#/definitions/db.Appointment'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.Appointment'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update an appointment
+      tags:
+      - appointments
+  /available:
+    get:
+      consumes:
+      - application/json
+      description: Returns all available 30-minute slots for a trainer in the given
+        date range
+      parameters:
+      - description: Trainer ID
+        in: query
+        name: trainer_id
+        required: true
+        type: integer
+      - description: Start datetime (RFC3339)
+        in: query
+        name: starts_at
+        required: true
+        type: string
+      - description: End datetime (RFC3339)
+        in: query
+        name: ends_at
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db.Appointment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get available appointment slots
+      tags:
+      - appointments
+schemes:
+- http
+swagger: "2.0"

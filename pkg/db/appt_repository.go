@@ -55,15 +55,15 @@ func (ar *apptRepository) GetAppointmentsByTrainerID(ctx context.Context, traine
 	if hasDateFilter {
 		// Catch overlaps not fully within the range
 		query += ` 
-			AND starts_at < @endTime 
-			AND ends_at > @startTime
+			AND started_at < @endTime 
+			AND ended_at > @startTime
 		`
 		args["startTime"] = startTime
 		args["endTime"] = endTime
 	}
 
 	// Order results (Can support pagination or sorting argument in the future if needed)
-	query += " ORDER BY starts_at ASC"
+	query += " ORDER BY started_at ASC"
 
 	rows, err := ar.db.Query(ctx, query, args)
 	if err != nil {
@@ -102,9 +102,9 @@ func (ar *apptRepository) GetAppointmentsByTrainerID(ctx context.Context, traine
 // CreateAppointment inserts a new appointment into the database and returns the created record with its assigned ID.
 func (ar *apptRepository) CreateAppointment(ctx context.Context, appt Appointment) (Appointment, error) {
 	query := `
-		INSERT INTO appointments (trainer_id, user_id, starts_at, ends_at)
+		INSERT INTO appointments (trainer_id, user_id, started_at, ended_at)
 		VALUES (@trainerID, @userID, @startedAt, @endedAt)
-		RETURNING id, trainer_id, user_id, starts_at, ends_at
+		RETURNING id, trainer_id, user_id, started_at, ended_at
 	`
 	args := pgx.NamedArgs{
 		"trainerID": appt.TrainerID,
@@ -207,9 +207,9 @@ func (ar *apptRepository) SeedFromJSON(ctx context.Context, filename string) err
 		appt.EndedAt = appt.EndedAt.In(pacificLoc)
 
 		query := `
-			INSERT INTO appointments (trainer_id, user_id, starts_at, ends_at)
+			INSERT INTO appointments (trainer_id, user_id, started_at, ended_at)
 			VALUES (@trainerID, @userID, @startedAt, @endedAt)
-			ON CONFLICT (trainer_id, starts_at) DO NOTHING
+			ON CONFLICT (trainer_id, started_at) DO NOTHING
 		`
 
 		args := pgx.NamedArgs{
@@ -233,7 +233,7 @@ func (ar *apptRepository) SeedFromJSON(ctx context.Context, filename string) err
 // GetAppointmentByID retrieves a single appointment by its ID
 func (ar *apptRepository) GetAppointmentByID(ctx context.Context, id int) (Appointment, error) {
 	query := `
-		SELECT id, trainer_id, user_id, starts_at, ends_at
+		SELECT id, trainer_id, user_id, started_at, ended_at
 		FROM appointments
 		WHERE id = @id
 	`
@@ -263,8 +263,8 @@ func (ar *apptRepository) UpdateAppointment(ctx context.Context, appt Appointmen
 		UPDATE appointments
 		SET trainer_id = @trainerID,
 		    user_id = @userID,
-		    starts_at = @startedAt,
-		    ends_at = @endedAt
+		    started_at = @startedAt,
+		    ended_at = @endedAt
 		WHERE id = @id
 	`
 
