@@ -71,8 +71,8 @@ func (a *API) SetupRoutes(r chi.Router) {
 // @Accept       json
 // @Produce      json
 // @Param        trainer_id  query     int     true  "Trainer ID"
-// @Param        starts_at   query     string  true  "Start datetime (RFC3339)"
-// @Param        ends_at     query     string  true  "End datetime (RFC3339)"
+// @Param        started_at   query     string  true  "Start datetime (RFC3339)"
+// @Param        ended_at     query     string  true  "End datetime (RFC3339)"
 // @Success      200  {array}   db.Appointment
 // @Failure      400  {object}  map[string]string
 // @Router       /available [get]
