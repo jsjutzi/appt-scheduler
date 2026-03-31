@@ -33,9 +33,15 @@ db-down:
 # Apply schema to database
 schema:
 	docker cp schema.sql appt-scheduler-db:/tmp/schema.sql 2>/dev/null || echo "Warning: schema.sql not found"
-	docker exec -it appt-scheduler-db psql -U postgres -d appt_scheduler -f /tmp/schema.sql
-	@echo "Schema applied successfully"
-
+	@echo "Waiting for PostgreSQL to be ready..."
+	docker exec appt-scheduler-db bash -c '\
+		until pg_isready -h localhost -U postgres -d appt_scheduler -q; do \
+			echo "Postgres is not ready yet... waiting 2s"; \
+			sleep 2; \
+		done; \
+		echo "PostgreSQL is ready! Running schema..."; \
+		psql -h localhost -U postgres -d appt_scheduler -f /tmp/schema.sql'
+		
 # Build Docker image
 build:
 	docker build -t appt-scheduler:latest .
