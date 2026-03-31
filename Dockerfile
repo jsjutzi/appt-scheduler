@@ -30,10 +30,11 @@ WORKDIR /app
 # Copy the compiled binary from builder stage
 COPY --from=builder /app/main .
 
-# Copy the seed file
+# Copy the seed file, api docs, env, and schema (for db setup) from builder stage
 COPY --from=builder /app/appointments.json .
 COPY --from=builder /app/.env .
 COPY --from=builder /app/docs ./docs
+COPY --from=builder /app/schema.sql .
 
 # Business logic in the app handles this, but we set it here for consistency
 ENV TZ=America/Los_Angeles
