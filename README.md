@@ -60,3 +60,15 @@ make run        # Start the API
 
 -- You can access swagger api docs locally once the application is running:
 `http://localhost:8080/swagger/index.html#/`
+
+### 6. Reviewer Notes
+
+I added additional endpoints not in the requirements:
+
+- PUT endpoint to update an existing appointment while enforcing the same business rules as creating one
+- DELETE endpoint to cancel an appointment.
+
+I added swagger api docs that will load locally and can be accessed at the url listed in step 5.
+
+I added an additional business rule that prevents scheduling appointments on U.S. Holidays since that
+is a requirement for most U.S. based businesses.  This can be easily removed if unwanted.
